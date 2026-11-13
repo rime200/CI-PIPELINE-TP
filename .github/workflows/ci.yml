@@ -1,28 +1,52 @@
-name: TP4
+name: TP4 - Pipeline Multi-Jobs
+
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
-  ci:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: installer python
+      - name: 1. Récupérer le code
+        uses: actions/checkout@v4
+      
+      - name: 2. Installer Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: installer les dependances
+          
+      - name: 3. Installer les dépendances
         run: pip install -r requirements.txt
-      - name: lancer flake8
+        
+      - name: 4. Installer l'outil flake8
+        run: pip install flake8
+        
+      - name: 5. Lancer flake8 sur app et tests
         run: |
           flake8 app --count --select=E9,F63,F7,F82,F841 --show-source --statistics
           flake8 app --count --max-complexity=10 --max-line-length=127 --statistics
           flake8 tests --count --max-line-length=127 --statistics
-      - name: executer pytest
+  test:
+    needs: lint  # <--- LIGNE TRÈS IMPORTANTE (voir explication)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Récupérer le code
+        uses: actions/checkout@v4
+        
+      - name: 2. Installer Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          
+      - name: 3. Installer les dépendances
+        run: pip install -r requirements.txt
+        
+      - name: 4. Installer l'outil flake8
+        run: pip install flake8
+        
+      - name: 5. Exécuter pytest avec couverture
         run: python -m pytest tests/ -v --cov=app
